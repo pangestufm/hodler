@@ -1,0 +1,38 @@
+{
+  "AADI": {
+    "name": "ADARO ANDALAN INDONESIA Tbk",
+    "holders": [
+      {"name": "ADARO STRATEGIC INVESTMENTS", "percent": "41.10%"},
+      {"name": "ALAMTRI RESOURCES INDONESIA TBK PT", "percent": "15.37%"},
+      {"name": "GARIBALDI THOHIR", "percent": "5.83%"},
+      {"name": "SARATOGA INVESTAMA SEDAYA TBK PT", "percent": "4.38%"},
+      {"name": "EDWIN SOERYADJAYA", "percent": "3.52%"},
+      {"name": "IR T. PERMADI RACHMAT", "percent": "3.27%"},
+      {"name": "SANDIAGA SALAHUDDIN UNO", "percent": "2.04%"}
+    ]
+  },
+  "ABBA": {
+    "name": "MAHAKA MEDIA Tbk",
+    "holders": [
+      {"name": "PT Beyond Media", "percent": "40.47%"},
+      {"name": "SOUC KREASI BARLI PT", "percent": "13.77%"},
+      {"name": "MEDIAHUIS IRELAND LIMITED", "percent": "7.19%"},
+      {"name": "DRS WINARTO", "percent": "4.54%"}
+    ]
+  },
+  "ABMM": {
+    "name": "ABM INVESTAMA Tbk",
+    "holders": [
+      {"name": "PT TIARA MARGA TRAKINDO", "percent": "53.56%"},
+      {"name": "VALLE VERDE PTE LTD", "percent": "25.51%"},
+      {"name": "LO KHENG HONG DRS", "percent": "5.62%"}
+    ]
+  },
+  "ACES": {
+    "name": "ASPIRASI HIDUP INDONESIA Tbk",
+    "holders": [
+      {"name": "PT KAWAN LAMA SEJAHTERA", "percent": "60.00%"},
+      {"name": "DBS BANK LTD S/A ABGIA ASEAN", "percent": "2.89%"}
+    ]
+  }
+}
