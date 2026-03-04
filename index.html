@@ -31,7 +31,7 @@
             --edge-color: #64748b;
         }
 
-        * { box-sizing: border-box; transition: background-color 0.3s ease, color 0.3s ease; }
+        * { box-sizing: border-box; transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
         
         body { 
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
@@ -52,6 +52,32 @@
         }
         h2 { margin: 0; font-weight: 600; font-size: 24px; }
         
+        /* --- WADAH TOMBOL HEADER --- */
+        .header-buttons {
+            display: flex;
+            align-items: center;
+            gap: 15px; /* Jarak antar tombol */
+        }
+
+        /* --- DESAIN TOMBOL DOWNLOAD --- */
+        .download-btn {
+            background-color: var(--btn-bg);
+            color: #ffffff !important;
+            padding: 8px 16px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+        }
+        .download-btn:hover { 
+            background-color: var(--btn-hover); 
+            filter: brightness(1.1);
+        }
+
         .theme-toggle {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -190,6 +216,8 @@
 
         @media (max-width: 768px) {
             .controls-container { grid-template-columns: 1fr; }
+            .header { flex-direction: column; align-items: flex-start; gap: 15px; }
+            .header-buttons { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
         }
     </style>
 </head>
@@ -197,14 +225,21 @@
 
     <div class="header">
         <h2>📊 Mind Map Kepemilikan Saham</h2>
-        <button class="theme-toggle" id="themeToggle">
-            <span id="themeIcon">🌙</span> Dark Mode
-        </button>
+        
+        <div class="header-buttons">
+            <a href="https://drive.google.com/file/d/1cDhXWRymgudHg8W3EUdFTHs93sPE5sXs/view?usp=sharing" target="_blank" class="download-btn">
+                📥 Download Contoh File
+            </a>
+            
+            <button class="theme-toggle" id="themeToggle">
+                <span id="themeIcon">🌙</span> Dark Mode
+            </button>
+        </div>
     </div>
     
     <div class="controls-container">
         <div class="card">
-            <div class="card-title">1. Sumber Data (Ubah data IDX jadi txt tab delimited)</div>
+            <div class="card-title">1. Sumber Data (TXT/TSV)</div>
             <label for="txtFileInput" class="file-upload-btn">Pilih File Data</label>
             <input type="file" id="txtFileInput" accept=".txt, .tsv" />
             <span class="file-name" id="fileNameDisplay">Belum ada file dipilih</span>
@@ -215,7 +250,7 @@
         </div>
         
         <div class="card">
-            <div class="card-title">2. Masukkan Kode Saham</div>
+            <div class="card-title">2. Analisis Spesifik</div>
             <div class="search-box">
                 <input type="text" id="searchInput" placeholder="Contoh: NETV" maxlength="4">
                 <button onclick="searchAndDraw()">Buat Visualisasi</button>
@@ -362,7 +397,6 @@
             });
 
             const totalNodes = data.length;
-            // Radius lingkarannya diperbesar lagi agar titik-titik raksasa tidak bertabrakan dengan pusat
             const radius = Math.max(300, 220 + (totalNodes * 35));
 
             data.forEach((row, index) => {
@@ -376,10 +410,6 @@
                 let jumlahLot = Math.floor(jumlahLembar / 100);
                 const investorId = "inv_" + index; 
                 
-                // --- RUMUS UKURAN DINAMIS YANG BARU ---
-                // Ukuran dasar 15, ditambah persentase dikalikan 1.5
-                // Contoh: Saham 80% akan berukuran (15 + 120) = 135 (Sangat Besar!)
-                // Contoh: Saham 2% akan berukuran (15 + 3) = 18 (Kecil)
                 let nodeSize = 15 + (persentase * 1.5);
 
                 const displayLabel = wrapText(investor, 18) + '\n(' + persentase + '%)';
@@ -392,7 +422,7 @@
                     id: investorId, 
                     label: displayLabel,
                     shape: 'dot', 
-                    size: nodeSize, // Menggunakan ukuran proporsional penuh
+                    size: nodeSize, 
                     x: nodeX, 
                     y: nodeY, 
                     color: { 
