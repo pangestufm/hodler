@@ -16,7 +16,6 @@
             --border-color: #e2e8f0;
             --btn-bg: #3498db;
             --btn-hover: #2980b9;
-            --accent: #f1c40f;
             --canvas-border: #cbd5e1;
             --edge-color: #94a3b8;
         }
@@ -32,7 +31,6 @@
             --edge-color: #64748b;
         }
 
-        /* --- GLOBAL STYLES --- */
         * { box-sizing: border-box; transition: background-color 0.3s ease, color 0.3s ease; }
         
         body { 
@@ -44,7 +42,6 @@
             overflow-x: hidden;
         }
 
-        /* --- HEADER & DARK MODE TOGGLE --- */
         .header {
             display: flex;
             justify-content: space-between;
@@ -71,7 +68,6 @@
         }
         .theme-toggle:hover { filter: brightness(0.9); }
 
-        /* --- CONTROL PANEL CARDS --- */
         .controls-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -94,7 +90,6 @@
             font-weight: bold;
         }
 
-        /* --- CUSTOM FILE INPUT --- */
         input[type="file"] { display: none; }
         .file-upload-btn {
             display: inline-block;
@@ -108,7 +103,6 @@
         .file-upload-btn:hover { background-color: var(--btn-hover); }
         .file-name { margin-left: 10px; font-size: 14px; color: #888; }
         
-        /* --- SEARCH BOX --- */
         .search-box { display: flex; gap: 10px; }
         input[type="text"] {
             flex: 1;
@@ -141,7 +135,6 @@
             display: none;
         }
 
-        /* --- CANVAS NETWORK --- */
         #mynetwork { 
             width: 100%; 
             height: 65vh; 
@@ -157,7 +150,6 @@
         }
         .hide-cursor canvas { cursor: none !important; }
 
-        /* --- TOOLTIP KUSTOM --- */
         #custom-tooltip {
             position: absolute;
             display: none;
@@ -196,7 +188,6 @@
             margin-top: 2px;
         }
 
-        /* Responsif untuk layar kecil */
         @media (max-width: 768px) {
             .controls-container { grid-template-columns: 1fr; }
         }
@@ -213,7 +204,7 @@
     
     <div class="controls-container">
         <div class="card">
-            <div class="card-title">1. Sumber Data (TXT/TSV)</div>
+            <div class="card-title">1. Sumber Data (Ubah data IDX jadi txt tab delimited)</div>
             <label for="txtFileInput" class="file-upload-btn">Pilih File Data</label>
             <input type="file" id="txtFileInput" accept=".txt, .tsv" />
             <span class="file-name" id="fileNameDisplay">Belum ada file dipilih</span>
@@ -224,7 +215,7 @@
         </div>
         
         <div class="card">
-            <div class="card-title">2. Analisis Spesifik</div>
+            <div class="card-title">2. Masukkan Kode Saham</div>
             <div class="search-box">
                 <input type="text" id="searchInput" placeholder="Contoh: NETV" maxlength="4">
                 <button onclick="searchAndDraw()">Buat Visualisasi</button>
@@ -239,7 +230,27 @@
     <div id="custom-tooltip"></div>
 
     <script>
-        // --- LOGIKA DARK MODE ---
+        let network = null;
+        let allStockData = []; 
+        let currentNodes = null;
+        let activeTickerId = null; 
+
+        function wrapText(text, maxCharsPerLine) {
+            const words = text.split(' ');
+            let result = '';
+            let currentLine = '';
+
+            words.forEach(word => {
+                if ((currentLine + word).length > maxCharsPerLine) {
+                    result += currentLine.trim() + '\n';
+                    currentLine = '';
+                }
+                currentLine += word + ' ';
+            });
+            result += currentLine.trim();
+            return result;
+        }
+
         const themeToggle = document.getElementById('themeToggle');
         const themeIcon = document.getElementById('themeIcon');
         
@@ -255,19 +266,23 @@
                 themeToggle.innerHTML = '<span id="themeIcon">☀️</span> Light Mode';
             }
             
-            // Perbarui warna garis graf jika sedang tampil
-            if (network) {
+            if (network && currentNodes) {
                 const edgeColor = getComputedStyle(document.body).getPropertyValue('--edge-color').trim();
+                const newTextColor = getComputedStyle(document.body).getPropertyValue('--text-color').trim();
+                
                 network.setOptions({ edges: { color: { color: edgeColor, highlight: '#3b82f6' } } });
+                
+                const nodeUpdates = currentNodes.get().map(node => {
+                    if (node.id !== activeTickerId) {
+                        return { id: node.id, font: { color: newTextColor } };
+                    }
+                    return null;
+                }).filter(n => n !== null);
+                
+                currentNodes.update(nodeUpdates);
             }
         });
 
-        // --- LOGIKA APLIKASI UTAMA ---
-        let network = null;
-        let allStockData = []; 
-        let currentNodes = null;
-
-        // Custom File Input Display
         document.getElementById('txtFileInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -303,12 +318,15 @@
                 return;
             }
 
-            const filteredData = allStockData.filter(row => {
-                return row['Kode'] && row['Kode'].toUpperCase().trim() === query;
+            const validData = allStockData.filter(row => {
+                let isMatch = row['Kode'] && row['Kode'].toUpperCase().trim() === query;
+                let persentase = row['Persentase'] ? parseFloat(row['Persentase'].replace(',', '.')) : 0;
+                let isInvestor = row['Investor'] && row['Investor'].trim() !== "";
+                return isMatch && isInvestor && persentase > 1;
             });
 
-            if (filteredData.length === 0) {
-                alert('Data untuk saham "' + query + '" tidak ditemukan dalam file.');
+            if (validData.length === 0) {
+                alert('Data untuk saham "' + query + '" (>1%) tidak ditemukan.');
                 if (network !== null) {
                     network.destroy();
                     network = null;
@@ -318,23 +336,24 @@
             }
 
             document.getElementById('mynetwork').innerHTML = "";
-            drawMindMap(filteredData, query);
+            drawMindMap(validData, query);
         }
 
         function drawMindMap(data, ticker) {
+            activeTickerId = ticker; 
             currentNodes = new vis.DataSet();
             const edges = new vis.DataSet();
             
             const emitenName = data[0]['Emiten'] ? data[0]['Emiten'].trim() : ticker;
+            const currentTextColor = getComputedStyle(document.body).getPropertyValue('--text-color').trim();
 
-            // NODE PUSAT (TICKER) - Desain Box Biru Mewah
             currentNodes.add({ 
                 id: ticker, 
                 label: ticker + '\n(' + emitenName + ')', 
                 shape: 'box', 
+                x: 0, y: 0, 
                 color: { 
-                    background: '#2563eb', 
-                    border: '#1e40af',
+                    background: '#2563eb', border: '#1e40af',
                     highlight: { background: '#3b82f6', border: '#1e3a8a' }
                 },
                 font: { size: 22, color: '#ffffff', bold: true, face: 'Segoe UI' },
@@ -342,80 +361,82 @@
                 margin: 15
             });
 
-            // NODE CABANG (INVESTOR) - Desain Dot Emas
+            const totalNodes = data.length;
+            // Radius lingkarannya diperbesar lagi agar titik-titik raksasa tidak bertabrakan dengan pusat
+            const radius = Math.max(300, 220 + (totalNodes * 35));
+
             data.forEach((row, index) => {
-                const investor = row['Investor'] ? row['Investor'].trim() : null;
-                let persentase = row['Persentase'] ? parseFloat(row['Persentase'].replace(',', '.')) : 0;
+                const investor = row['Investor'].trim();
+                let persentase = parseFloat(row['Persentase'].replace(',', '.'));
                 
                 let jumlahLembarStr = row['Jumlah Saham'] ? row['Jumlah Saham'].toString().trim() : "0";
                 let jumlahLembar = parseFloat(jumlahLembarStr.replace(/\./g, '').replace(/,/g, ''));
                 if (isNaN(jumlahLembar)) jumlahLembar = 0;
                 
                 let jumlahLot = Math.floor(jumlahLembar / 100);
+                const investorId = "inv_" + index; 
+                
+                // --- RUMUS UKURAN DINAMIS YANG BARU ---
+                // Ukuran dasar 15, ditambah persentase dikalikan 1.5
+                // Contoh: Saham 80% akan berukuran (15 + 120) = 135 (Sangat Besar!)
+                // Contoh: Saham 2% akan berukuran (15 + 3) = 18 (Kecil)
+                let nodeSize = 15 + (persentase * 1.5);
 
-                if (investor && persentase > 1) {
-                    const investorId = "inv_" + index; 
-                    
-                    // Ukuran node proporsional tapi dibatasi agar estetika terjaga
-                    let nodeSize = Math.min(Math.max(15, persentase * 0.8), 50);
+                const displayLabel = wrapText(investor, 18) + '\n(' + persentase + '%)';
 
-                    currentNodes.add({ 
-                        id: investorId, 
-                        label: persentase + '%', // Label pendek di graf, nama panjang di tooltip
-                        shape: 'dot', 
-                        size: nodeSize, 
-                        color: { 
-                            background: '#f59e0b', 
-                            border: '#b45309',
-                            highlight: { background: '#fbbf24', border: '#d97706' }
-                        },
-                        font: { size: 14, color: '#1e293b', bold: true, face: 'Segoe UI' },
-                        shadow: { enabled: true, color: 'rgba(0,0,0,0.3)', size: 8, x: 2, y: 2 },
-                        
-                        // Data Tersembunyi untuk Tooltip
-                        invName: investor,
-                        invPercent: persentase,
-                        invLot: jumlahLot.toLocaleString('id-ID'),
-                        invLembar: jumlahLembar.toLocaleString('id-ID')
-                    });
+                const angle = (index / totalNodes) * 2 * Math.PI;
+                const nodeX = radius * Math.cos(angle);
+                const nodeY = radius * Math.sin(angle);
+
+                currentNodes.add({ 
+                    id: investorId, 
+                    label: displayLabel,
+                    shape: 'dot', 
+                    size: nodeSize, // Menggunakan ukuran proporsional penuh
+                    x: nodeX, 
+                    y: nodeY, 
+                    color: { 
+                        background: '#f59e0b', border: '#b45309',
+                        highlight: { background: '#fbbf24', border: '#d97706' }
+                    },
+                    font: { size: 13, color: currentTextColor, bold: true, face: 'Segoe UI', align: 'center' },
+                    shadow: { enabled: true, color: 'rgba(0,0,0,0.3)', size: 8, x: 2, y: 2 },
                     
-                    edges.add({ 
-                        from: ticker, 
-                        to: investorId, 
-                        length: 250 + (nodeSize * 2) // Jarak otomatis merenggang jika node besar
-                    });
-                }
+                    invName: investor,
+                    invPercent: persentase,
+                    invLot: jumlahLot.toLocaleString('id-ID'),
+                    invLembar: jumlahLembar.toLocaleString('id-ID')
+                });
+                
+                edges.add({ from: ticker, to: investorId });
             });
 
-            // Warna edge bergantung pada tema aktif
             const edgeColor = getComputedStyle(document.body).getPropertyValue('--edge-color').trim();
 
             const container = document.getElementById('mynetwork');
             const networkData = { nodes: currentNodes, edges: edges };
             
             const options = {
+                physics: { enabled: false },
                 nodes: { borderWidth: 3 },
                 edges: { 
                     width: 2, 
                     color: { color: edgeColor, highlight: '#3b82f6' },
-                    smooth: { type: 'cubicBezier', forceDirection: 'none', roundness: 0.5 } // Garis lengkung estetik
+                    smooth: { type: 'continuous' }
                 },
-                physics: {
-                    stabilization: { iterations: 150 }, // Animasi buka yang halus
-                    barnesHut: { 
-                        gravitationalConstant: -6000, 
-                        springConstant: 0.03, 
-                        springLength: 200,
-                        avoidOverlap: 0.5 // Mencegah titik menumpuk
-                    }
-                },
-                interaction: { hover: true, tooltipDelay: 0 }
+                interaction: { 
+                    hover: true, 
+                    tooltipDelay: 0, 
+                    dragNodes: true, 
+                    zoomView: true 
+                }
             };
 
             if (network !== null) { network.destroy(); }
             network = new vis.Network(container, networkData, options);
+            
+            network.fit({ animation: false });
 
-            // --- HOVER TOOLTIP LOGIC ---
             const tooltip = document.getElementById('custom-tooltip');
 
             network.on("hoverNode", function (params) {
