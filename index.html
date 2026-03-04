@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Stock Holder Mind Map</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f4f4f9; }
+        .search-container { margin-bottom: 30px; text-align: center; }
+        input { padding: 10px; width: 250px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        #map-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .error { color: red; text-align: center; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="search-container">
+    <h1>Stock Ownership Mind Map</h1>
+    <input type="text" id="tickerInput" placeholder="Enter Ticker (e.g., AADI, ABBA)">
+    <button onclick="generateMap()">Generate Map</button>
+    <div id="errorMsg" class="error"></div>
+</div>
+
+<div id="map-container">
+    <div id="mermaid-graph"></div>
+</div>
+
+<script>
+    mermaid.initialize({ startOnLoad: false });
+
+    async function generateMap() {
+        const ticker = document.getElementById('tickerInput').value.toUpperCase();
+        const errorMsg = document.getElementById('errorMsg');
+        const container = document.getElementById('mermaid-graph');
+        
+        errorMsg.innerText = "";
+        container.innerHTML = "";
+
+        try {
+            const response = await fetch('data.json');
+            const data = await response.json();
+
+            if (data[ticker]) {
+                const stock = data[ticker];
+                let graphDefinition = `mindmap\n  root((${ticker}\\n${stock.name}))\n`;
+                
+                stock.holders.forEach(holder => {
+                    graphDefinition += `    ${holder.name.replace(/[^a-zA-Z0-9 ]/g, "")}\n      ::icon(fa fa-user)\n      ${holder.percent}\n`;
+                });
+
+                const { svg } = await mermaid.render('graphDiv', graphDefinition);
+                container.innerHTML = svg;
+            } else {
+                errorMsg.innerText = "Ticker not found in database.";
+            }
+        } catch (err) {
+            errorMsg.innerText = "Error loading data.";
+            console.error(err);
+        }
+    }
+</script>
+
+</body>
+</html>
